@@ -1,43 +1,47 @@
 const express = require('express');
 const app = express();
 const http = require('http');
+const {Server} = require('socket.io');
 const cors = require('cors');
-const { Server } = require('socket.io');
 
+//Initialisation du serveur
 app.use(cors);
-const server = http.createServer(app);
-
-/* Instanciation du server socket qui va se lancé sur le server express
- avec le parametre cors pour lui dire l'origin de connexion qui est autorisé */
+const server = http.createServer(app); 
 const io = new Server(server, {
     cors: {
         origin: "http://localhost:3000",
         methods: ["GET", "POST"],
-    }
+    },
 });
 
-const groupMessages = {};
+let users = [];
 
-io.on('connection', (socket) => {
+// Socket.io
+io.on("connection", (socket) => {
+    // transmet l'id lors d'une connection
     console.log(`User connected : ${socket.id}`);
 
-    socket.on("join_group", (data) => {
-        console.log("Group joined :", data);
-        socket.join(data);
+    socket.on('new_user', (data) => {
+      users.push(data);
+      console.log(users);
+      io.emit('receive_users', users);
     });
 
-    // receive a message from the client
+    // Me permet de récupérer les messages du client
     socket.on("send_message", (data) => {
-        console.log(data);
-        socket.to(data.group).emit("receive_message", data);
+      console.log(data);
+      io.emit("receive_message", data)
     });
 
-
-    socket.on("disconnect", () => {
-        console.log("User Disconnected", socket.id);
+    socket.on('disconnect', () => {
+      console.log('A user disconnected');
+      users = users.filter((user) => user.socketID !== socket.id);
+      socket.emit('receive_users', users);
+      socket.disconnect();
     });
 });
 
+// On lance le serveur
 server.listen(3001, () => {
-    console.log("SERVER IS UP !");
+    console.log('SERVER IS RUNNING');
 });
