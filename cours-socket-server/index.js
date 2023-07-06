@@ -4,8 +4,19 @@ const http = require('http');
 const {Server} = require('socket.io');
 const cors = require('cors');
 
+const bodyParser = require('body-parser')
+
+// import routes
+const authRoutes = require('./routes/authRoutes')
+
 //Initialisation du serveur
-app.use(cors);
+app.use(cors());
+app.use(bodyParser.urlencoded({extended: false}));
+app.use(bodyParser.json());
+
+// Activation des routes
+app.use('/auth', authRoutes);
+
 const server = http.createServer(app); 
 const io = new Server(server, {
     cors: {
@@ -14,7 +25,7 @@ const io = new Server(server, {
     },
 });
 
-let users = [];
+let users = []; // maintenant on a l'email à la place des user
 
 // Socket.io
 io.on("connection", (socket) => {
